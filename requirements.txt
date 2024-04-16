@@ -1,0 +1,7 @@
+# python 3.11
+torch 
+torchvision 
+torchaudio
+wandb
+tensorboard
+# hydra-core --upgrade
