@@ -10,7 +10,13 @@ class LARS(nn.Module):
     def __init__(self, p: int):
         super().__init__()
         self.p = p
-        self.betas = torch.zeros(p, p)
+        self.betas = torch.zeros(p + 1, p)
+
+    def update_betas(self, k, s, A, gamma, w_A):
+        s_w_A = s.clone()
+        s_w_A[A.flatten(), :] *= w_A
+        betas_delta = gamma * s_w_A.flatten()
+        self.betas[k + 1] = self.betas[k] + betas_delta
 
     def fit(self, dataset):
         X, y = dataset.get_data()
@@ -41,14 +47,13 @@ class LARS(nn.Module):
             # Eq. 2.5
             G_A = X_A.T @ X_A
             G_A_inv = G_A.inverse()
-            A_A = G_A_inv.sum(dim = 0).sum(dim = 0) ** (-1/2)
+            A_A = G_A_inv.sum() ** (-1/2)
+
+            # Eq. 2.6
+            w_A = A_A * G_A_inv.sum(dim = 1).view(-1, 1)
+            u_A = X_A @ w_A
 
             if not k == self.p - 2:
-
-                # Eq. 2.6
-                w_A = A_A * G_A_inv.sum(dim = 1).view(-1, 1)
-                u_A = X_A @ w_A
-
                 # Eq. 2.11
                 a = X.T @ u_A
 
@@ -80,8 +85,11 @@ class LARS(nn.Module):
             # Eq. 2.14
             mu_hat += gamma * u_A
 
-            # Add minimizer to active set
-            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+            # Update coefficients
+            self.update_betas(k, s, A, gamma, w_A)
 
+            # Add minimizer to active set
             A[j] = True
 
+            # Compute mse
+            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
