@@ -14,6 +14,7 @@ def get_components(config):
     return model, dataset
 
 def run(config: DictConfig):
+    utils.set_seed(config.exp.seed)
     utils.preprocess_config(config)
     utils.setup_wandb(config)
 
@@ -22,5 +23,3 @@ def run(config: DictConfig):
 
     # fit model
     model.fit(dataset)
-
-            
