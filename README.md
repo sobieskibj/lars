@@ -6,6 +6,7 @@ The LARS algorithm was introduced in the work of [Efron et al. (2004)](https://a
 
 - [Introduction to LARS](https://b-thi.github.io/pdfs/LARS.pdf)
 - [Thesis about LARS](https://ir.library.louisville.edu/cgi/viewcontent.cgi?article=3487&context=etd)
+- [Presentation about LARS from Stanford](https://hastie.su.domains/TALKS/larstalk.pdf)
 
 # To do
 
