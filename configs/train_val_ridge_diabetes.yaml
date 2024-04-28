@@ -1,0 +1,19 @@
+defaults:
+  - _self_
+  - model: ridge
+  - dataset: diabetes
+
+exp:
+  run_func: 
+    _target_: experiment.run_train_val
+  seed: 42
+  log_dir: # set during runtime to automatically created dir
+
+  split: 0.7
+
+  min_lambda: 1e-1
+  max_lambda: 1e-7
+  n_lambdas: 10
+
+wandb:
+  project: lars

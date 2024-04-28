@@ -13,4 +13,5 @@ The LARS algorithm was introduced in the work of [Efron et al. (2004)](https://a
 - porownac wyniki roznych implementacji lasso z wlasna implementacja lars na kilku zbiorach danych
     - wielkosc wspolczynnikow i liczba niezerowych
     - czas dzialania
+    - rozna liczba zmiennych i obserwacji, w szczegolnosci p > n
 - sprawdzic sytuacje danych zaleznych

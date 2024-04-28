@@ -1,4 +1,4 @@
-_target_: dataset.SyntheticRegressionDataset
+_target_: dataset.SyntheticRegression
 n: ${exp.n}
 p: ${exp.p}
 split: ${exp.split}

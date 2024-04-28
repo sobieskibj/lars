@@ -1,0 +1,2 @@
+_target_: dataset.Diabetes
+split: ${exp.split}

@@ -8,8 +8,11 @@ log = logging.getLogger(__name__)
 
 class LARS(Model):
 
-    def __init__(self, p: int):
+    def __init__(self):
         super().__init__()
+
+    def setup(self, X):
+        p = X.shape[1]
         self.p = p
         self.betas = torch.zeros(p + 1, p)
 
@@ -29,6 +32,9 @@ class LARS(Model):
 
         # Extract training split
         X, y, _, _ = dataset.get_train_val_split()
+
+        # Prepare model using X
+        self.setup(X)
 
         mu_hat = torch.zeros_like(y)
         s = torch.zeros_like(X[0, None].T)

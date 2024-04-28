@@ -5,4 +5,5 @@ torchaudio
 wandb
 tensorboard
 -U scikit-learn
+pandas
 # hydra-core --upgrade

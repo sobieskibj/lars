@@ -1,0 +1,10 @@
+_target_: model.LASSOGD
+min_lambda: ${exp.min_lambda}
+max_lambda: ${exp.max_lambda}
+n_lambdas: ${exp.n_lambdas}
+optimizer:
+  _partial_: true
+  _target_: torch.optim.AdamW
+  lr: 0.05
+n_epochs: 100
+early_stop: 5
