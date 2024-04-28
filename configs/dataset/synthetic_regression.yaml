@@ -1,4 +1,4 @@
 _target_: dataset.SyntheticRegressionDataset
 n: ${exp.n}
 p: ${exp.p}
-split: 1.0
+split: ${exp.split}

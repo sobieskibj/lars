@@ -1,0 +1,4 @@
+_target_: model.LASSO
+min_lambda: ${exp.min_lambda}
+max_lambda: ${exp.max_lambda}
+n_lambdas: ${exp.n_lambdas}

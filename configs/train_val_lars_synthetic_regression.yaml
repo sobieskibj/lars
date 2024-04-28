@@ -5,12 +5,13 @@ defaults:
 
 exp:
   run_func: 
-    _target_: experiment.run_train
+    _target_: experiment.run_train_val
   seed: 42
   log_dir: # set during runtime to automatically created dir
 
   n: 100
   p: 10
+  split: 0.7
 
 wandb:
   project: lars

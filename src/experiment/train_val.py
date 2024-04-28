@@ -22,4 +22,7 @@ def run(config: DictConfig):
     model, dataset = get_components(config)
 
     # fit model
-    model.fit(dataset)
+    model.train(dataset)
+
+    # validate model
+    model.validate(dataset)

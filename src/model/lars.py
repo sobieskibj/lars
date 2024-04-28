@@ -1,25 +1,34 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
+
+from .base import Model
 
 import logging
 log = logging.getLogger(__name__)
 
-class LARS(nn.Module):
+class LARS(Model):
 
     def __init__(self, p: int):
         super().__init__()
         self.p = p
         self.betas = torch.zeros(p + 1, p)
 
-    def update_betas(self, k, s, A, gamma, w_A):
-        s_w_A = s.clone()
-        s_w_A[A.flatten(), :] *= w_A
-        betas_delta = gamma * s_w_A.flatten()
-        self.betas[k + 1] = self.betas[k] + betas_delta
+    def update_betas(self, k, s, A, gamma, w_A, X, y):
+        if k != self.p - 1:
+            # Eq. 3.3
+            s_w_A = s.clone()
+            s_w_A[A.flatten(), :] *= w_A
+            betas_delta = gamma * s_w_A.flatten()
+            self.betas[k + 1] = self.betas[k] + betas_delta
+        else:
+            # In the end, the coefficients are equal to OLS solution
+            self.betas[k + 1] = ((X.T @ X).inverse() @ X.T @ y).flatten()
 
-    def fit(self, dataset):
-        X, y = dataset.get_data()
+    def train(self, dataset):
+        log.info('Training')
+
+        # Extract training split
+        X, y, _, _ = dataset.get_train_val_split()
 
         mu_hat = torch.zeros_like(y)
         s = torch.zeros_like(X[0, None].T)
@@ -86,10 +95,32 @@ class LARS(nn.Module):
             mu_hat += gamma * u_A
 
             # Update coefficients
-            self.update_betas(k, s, A, gamma, w_A)
+            self.update_betas(k, s, A, gamma, w_A, X, y)
 
             # Add minimizer to active set
             A[j] = True
 
             # Compute mse
+            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+
+        log.info(f'Iteration: {k + 1}')
+
+        # OLS solution
+        self.update_betas(k + 1, s, A, gamma, w_A, X, y)
+
+        # Get residuals at last iter equal to OLS
+        mu_hat = (X @ self.betas[-1])[:, None]
+
+        # Compute mse
+        log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+
+    def validate(self, dataset):
+        log.info('Validation')
+
+        # Extract validation split
+        _, _, X, y = dataset.get_train_val_split()
+
+        for iter_idx, betas in enumerate(self.betas):
+            mu_hat = (X @ betas)[:, None]
+            log.info(f'Iteration: {iter_idx}')
             log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
