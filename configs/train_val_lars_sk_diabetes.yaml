@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+  - model: lars_sk
+  - dataset: diabetes
+
+exp:
+  run_func: 
+    _target_: experiment.run_train_val
+  seed: 42
+  log_dir: # set during runtime to automatically created dir
+
+  split: 0.7
+
+wandb:
+  project: lars

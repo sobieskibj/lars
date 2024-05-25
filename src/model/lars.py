@@ -1,5 +1,8 @@
+import wandb
 import torch
+import numpy as np
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from .base import Model
 
@@ -15,6 +18,7 @@ class LARS(Model):
         p = X.shape[1]
         self.p = p
         self.betas = torch.zeros(p + 1, p)
+        self.alphas = torch.zeros(p + 1)
 
     def update_betas(self, k, s, A, gamma, w_A, X, y):
         if k != self.p - 1:
@@ -26,6 +30,9 @@ class LARS(Model):
         else:
             # In the end, the coefficients are equal to OLS solution
             self.betas[k + 1] = ((X.T @ X).inverse() @ X.T @ y).flatten()
+
+    def update_alphas(self, k, X, y):
+        self.alphas[k] = np.absolute(np.cov(X.T, y.flatten())[-1, :-1]).max()
 
     def train(self, dataset):
         log.info('Training')
@@ -50,6 +57,7 @@ class LARS(Model):
 
             # Eq. 2.8
             c_hat = X.T @ (y - mu_hat)
+            self.update_alphas(k, X, (y - mu_hat))
 
             # Eq. 2.9
             C_hat = c_hat.abs().max()
@@ -116,6 +124,7 @@ class LARS(Model):
 
         # Get residuals at last iter equal to OLS
         mu_hat = (X @ self.betas[-1])[:, None]
+        self.update_alphas(k + 1, X, (y - mu_hat))
 
         # Compute mse
         log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
@@ -128,5 +137,19 @@ class LARS(Model):
 
         for iter_idx, betas in enumerate(self.betas):
             mu_hat = (X @ betas)[:, None]
+            loss = F.mse_loss(y, mu_hat).item()
             log.info(f'Iteration: {iter_idx}')
-            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+            log.info(f'MSE: {loss}')
+            wandb.log({'loss': loss})
+
+        self.log_beta_plot()
+
+    def log_beta_plot(self):
+        plt.figure()
+        plt.plot(
+            self.alphas.flip(0), self.betas.flip(0).numpy(force = True))
+        plt.xlabel('Alpha')
+        plt.ylabel('Betas')
+        plt.legend([idx for idx in range(self.p + 1)])
+        plt.grid()
+        wandb.log({'betas': plt})

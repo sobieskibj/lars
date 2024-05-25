@@ -9,8 +9,8 @@ import logging
 log = logging.getLogger(__name__)
 
 def get_components(config):
-    model = instantiate(config.model)
     dataset = instantiate(config.dataset)
+    model = instantiate(config.model)
     return model, dataset
 
 def run(config: DictConfig):

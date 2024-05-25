@@ -1,7 +1,10 @@
+import wandb
 import torch
 from torch import nn
+from tqdm import tqdm
 import torch.nn.functional as F
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .base import Model
 
@@ -44,7 +47,9 @@ class RidgeGD(Model):
         stop_counter = 0
 
         # Iterate self.n_epochs times
-        for epoch_idx in range(self.n_epochs):
+        pbar = tqdm(range(self.n_epochs))
+
+        for epoch_idx in pbar:
             log.info(f'Epoch: {epoch_idx}')
             optim.zero_grad()
 
@@ -67,7 +72,7 @@ class RidgeGD(Model):
             # Make gradient step
             optim.step()
 
-            log.info(f'Loss: {loss.item()}')
+            pbar.set_description(f'loss: {loss.item()}')
 
         return betas
 
@@ -94,13 +99,29 @@ class RidgeGD(Model):
             y_hat = X @ betas.view(-1, 1)
             log.info(f'MSE: {F.mse_loss(y, y_hat)}')
 
+    def get_alpha(self, X, y):
+        return torch.cat([X.T, y.T]).cov()[-1, :-1].abs().max().item()
+
     def validate(self, dataset):
         log.info('Validation')
 
         # Extract validation split
         _, _, X, y = dataset.get_train_val_split()
+        alphas = torch.zeros(self.betas.shape[0])
 
         for iter_idx, betas in enumerate(self.betas):
             mu_hat = (X.float() @ betas)[:, None]
+            alphas[iter_idx] = self.get_alpha(X, (y - mu_hat))
+            loss = F.mse_loss(y, mu_hat).item()
             log.info(f'Iteration: {iter_idx}')
-            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+            log.info(f'MSE: {loss}')
+            wandb.log({'loss': loss})
+
+        plt.figure()
+        plt.plot(
+            alphas.flip(0), self.betas.flip(0).numpy(force = True))
+        plt.xlabel('Alpha')
+        plt.ylabel('Betas')
+        plt.legend([idx for idx in range(self.p + 1)])
+        plt.grid()
+        wandb.log({'betas': plt})
