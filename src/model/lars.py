@@ -1,3 +1,4 @@
+import time
 import wandb
 import torch
 import numpy as np
@@ -11,14 +12,15 @@ log = logging.getLogger(__name__)
 
 class LARS(Model):
 
-    def __init__(self):
+    def __init__(self, speedup):
         super().__init__()
+        self.speedup = speedup
 
-    def setup(self, X):
+    def setup(self, X, device):
         p = X.shape[1]
         self.p = p
-        self.betas = torch.zeros(p + 1, p)
-        self.alphas = torch.zeros(p + 1)
+        self.betas = torch.zeros(p + 1, p, device = device)
+        self.alphas = torch.zeros(p + 1, device = device)
 
     def update_betas(self, k, s, A, gamma, w_A, X, y):
         if k != self.p - 1:
@@ -32,20 +34,28 @@ class LARS(Model):
             self.betas[k + 1] = ((X.T @ X).inverse() @ X.T @ y).flatten()
 
     def update_alphas(self, k, X, y):
-        self.alphas[k] = np.absolute(np.cov(X.T, y.flatten())[-1, :-1]).max()
+        self.alphas[k] = torch.hstack([X, y]).T.cov()[-1, :-1].abs().max()
 
     def train(self, dataset):
         log.info('Training')
 
+        device = torch.device('cuda') if \
+            torch.cuda.is_available() else torch.device('cpu')
+        break_nan = False
+        
         # Extract training split
         X, y, _, _ = dataset.get_train_val_split()
+        X, y = X.to(device), y.to(device)
 
         # Prepare model using X
-        self.setup(X)
+        self.setup(X, device)
 
         mu_hat = torch.zeros_like(y)
         s = torch.zeros_like(X[0, None].T)
         A = torch.zeros_like(s).bool()
+
+        # Start monitoring execution time
+        start_time = time.time()
 
         # In the beginning, we choose the predictor
         # according to highest absolute correlation
@@ -53,11 +63,11 @@ class LARS(Model):
         A[c_hat.abs().argmax()] = True
 
         for k in range(self.p - 1):
-            log.info(f'Iteration: {k}')
+            if not self.speedup: log.info(f'Iteration: {k}')
 
             # Eq. 2.8
             c_hat = X.T @ (y - mu_hat)
-            self.update_alphas(k, X, (y - mu_hat))
+            if not self.speedup: self.update_alphas(k, X, (y - mu_hat))
 
             # Eq. 2.9
             C_hat = c_hat.abs().max()
@@ -109,25 +119,45 @@ class LARS(Model):
             mu_hat += gamma * u_A
 
             # Update coefficients
-            self.update_betas(k, s, A, gamma, w_A, X, y)
+            if not self.speedup: self.update_betas(k, s, A, gamma, w_A, X, y)
 
             # Add minimizer to active set
             A[j] = True
 
-            # Compute mse
-            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+            if not self.speedup: 
+                # Compute mse
+                loss = F.mse_loss(y, mu_hat)
+                log.info(f'MSE: {loss.item()}')
 
-        log.info(f'Iteration: {k + 1}')
+                if loss.isnan():
+                    log.info('Loss is NaN, breaking the loop.')
+                    break_nan = True
+                    break
 
-        # OLS solution
-        self.update_betas(k + 1, s, A, gamma, w_A, X, y)
+        if not break_nan:
+            if not self.speedup: 
+                log.info(f'Iteration: {k + 1}')
 
-        # Get residuals at last iter equal to OLS
-        mu_hat = (X @ self.betas[-1])[:, None]
-        self.update_alphas(k + 1, X, (y - mu_hat))
+                # OLS solution
+                self.update_betas(k + 1, s, A, gamma, w_A, X, y)
 
-        # Compute mse
-        log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+                # Get residuals at last iter equal to OLS
+                mu_hat = (X @ self.betas[-1])[:, None]
+                self.update_alphas(k + 1, X, (y - mu_hat))
+
+                # Compute mse
+                log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
+
+            # End monitoring execution time
+            end_time = time.time()
+        else:
+            # End monitoring execution time
+            end_time = time.time()
+
+            self.betas = self.betas[:k]
+            self.alphas = self.alphas[:k]
+
+        wandb.log({'exec_time': end_time - start_time})
 
     def validate(self, dataset):
         log.info('Validation')

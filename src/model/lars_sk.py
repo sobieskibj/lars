@@ -1,3 +1,4 @@
+import time
 import wandb
 import torch
 from sklearn.linear_model import Lars
@@ -21,10 +22,18 @@ class LARSSK(Model):
         X, y, _, _ = dataset.get_train_val_split()
 
         # Create model and fit
-        model = Lars(fit_intercept = False)
+        model = Lars(fit_intercept = False, precompute = False)
+
+        start_time = time.time()
+
         model.fit(X, y)
+
+        end_time = time.time()
+        
+        wandb.log({'exec_time': end_time - start_time})
         
         # Save model parameters
+        self.model = model
         self.alphas = model.alphas_
         self.betas = model.coef_path_.T
         self.order = model.active_

@@ -1,3 +1,4 @@
+import time
 import wandb
 import numpy as np
 from sklearn.metrics import mean_squared_error
@@ -24,6 +25,7 @@ class Ridge(Model):
 
         # Make container for betas
         self.betas = np.zeros((len(self.lambdas) + 1, X.shape[1]))
+        start_time = time.time()
 
         for iter_idx, lambda_ in enumerate(self.lambdas):
             log.info(f'Iteration: {iter_idx}')
@@ -38,6 +40,9 @@ class Ridge(Model):
             # Get predictions and mse
             y_hat = model.predict(X)
             log.info(f'MSE: {mean_squared_error(y, y_hat)}')
+
+        end_time = time.time()
+        wandb.log({'exec_time': end_time - start_time})
 
     def get_alpha(self, X, y):
         return np.absolute(np.cov(X.T, y.flatten())[-1, :-1]).max()

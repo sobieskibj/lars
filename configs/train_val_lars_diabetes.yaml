@@ -10,6 +10,8 @@ exp:
   log_dir: # set during runtime to automatically created dir
 
   split: 0.7
+  
+  speedup: true
 
 wandb:
   project: lars

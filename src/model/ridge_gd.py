@@ -1,3 +1,4 @@
+import time
 import wandb
 import torch
 from torch import nn
@@ -84,6 +85,7 @@ class RidgeGD(Model):
 
         # Prepare model using X
         self.setup(X)
+        start_time = time.time()
 
         # Iterate over lambdas and find coefs for each
         for iter_idx, lambda_ in enumerate(self.lambdas):
@@ -98,6 +100,9 @@ class RidgeGD(Model):
             # Get predictions and mse
             y_hat = X @ betas.view(-1, 1)
             log.info(f'MSE: {F.mse_loss(y, y_hat)}')
+
+        end_time = time.time()
+        wandb.log({'exec_time': end_time - start_time})
 
     def get_alpha(self, X, y):
         return torch.cat([X.T, y.T]).cov()[-1, :-1].abs().max().item()

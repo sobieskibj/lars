@@ -42,7 +42,7 @@ python src/main.py --config-name train_val_ridge_gd_synthetic_regression exp.n=$
 
 python src/main.py --config-name train_val_lars_diabetes
 python src/main.py --config-name train_val_lars_sk_diabetes
-python src/main.py --config-name train_val_lasso_diabetes exp.n=$N exp.p=$P
-python src/main.py --config-name train_val_ridge_diabetes exp.n=$N exp.p=$P
-python src/main.py --config-name train_val_lasso_gd_diabetes exp.n=$N exp.p=$P
-python src/main.py --config-name train_val_ridge_gd_diabetes exp.n=$N exp.p=$P
+python src/main.py --config-name train_val_lasso_diabetes
+python src/main.py --config-name train_val_ridge_diabetes
+python src/main.py --config-name train_val_lasso_gd_diabetes 
+python src/main.py --config-name train_val_ridge_gd_diabetes

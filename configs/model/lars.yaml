@@ -1,1 +1,2 @@
 _target_: model.LARS
+speedup: ${exp.speedup}
