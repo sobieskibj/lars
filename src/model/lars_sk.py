@@ -4,6 +4,7 @@ import torch
 from sklearn.linear_model import Lars
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import numpy as np
 
 from .base import Model
 
@@ -22,7 +23,10 @@ class LARSSK(Model):
         X, y, _, _ = dataset.get_train_val_split()
 
         # Create model and fit
-        model = Lars(fit_intercept = False, precompute = False)
+        model = Lars(
+            fit_intercept = False, 
+            precompute = False,
+            n_nonzero_coefs = X.shape[1])
 
         start_time = time.time()
 

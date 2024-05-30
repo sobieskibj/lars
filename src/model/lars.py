@@ -162,8 +162,12 @@ class LARS(Model):
     def validate(self, dataset):
         log.info('Validation')
 
+        device = torch.device('cuda') if \
+            torch.cuda.is_available() else torch.device('cpu')
+
         # Extract validation split
         _, _, X, y = dataset.get_train_val_split()
+        X, y = X.to(device), y.to(device)
 
         for iter_idx, betas in enumerate(self.betas):
             mu_hat = (X @ betas)[:, None]
@@ -172,7 +176,8 @@ class LARS(Model):
             log.info(f'MSE: {loss}')
             wandb.log({'loss': loss})
 
-        self.log_beta_plot()
+        if not self.speedup:
+            self.log_beta_plot()
 
     def log_beta_plot(self):
         plt.figure()
