@@ -79,7 +79,11 @@ class LARS(Model):
 
             # Eq. 2.5
             G_A = X_A.T @ X_A
-            G_A_inv = G_A.inverse()
+            try:
+                G_A_inv = G_A.inverse()
+            except torch._C._LinAlgError:
+                break_nan = True
+                break
             A_A = G_A_inv.sum() ** (-1/2)
 
             # Eq. 2.6

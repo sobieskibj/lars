@@ -4,6 +4,9 @@ torchvision
 torchaudio
 wandb
 tensorboard
--U scikit-learn
 pandas
+matplotlib
+tqdm
+plotly
+# -U scikit-learn
 # hydra-core --upgrade
