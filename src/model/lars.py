@@ -41,7 +41,6 @@ class LARS(Model):
 
         device = torch.device('cuda') if \
             torch.cuda.is_available() else torch.device('cpu')
-        break_nan = False
         
         # Extract training split
         X, y, _, _ = dataset.get_train_val_split()
@@ -79,11 +78,7 @@ class LARS(Model):
 
             # Eq. 2.5
             G_A = X_A.T @ X_A
-            try:
-                G_A_inv = G_A.inverse()
-            except torch._C._LinAlgError:
-                break_nan = True
-                break
+            G_A_inv = G_A.inverse()
             A_A = G_A_inv.sum() ** (-1/2)
 
             # Eq. 2.6
@@ -128,38 +123,26 @@ class LARS(Model):
             # Add minimizer to active set
             A[j] = True
 
-            if not self.speedup: 
+            if not self.speedup:
                 # Compute mse
                 loss = F.mse_loss(y, mu_hat)
                 log.info(f'MSE: {loss.item()}')
 
-                if loss.isnan():
-                    log.info('Loss is NaN, breaking the loop.')
-                    break_nan = True
-                    break
+        if not self.speedup: 
+            log.info(f'Iteration: {k + 1}')
 
-        if not break_nan:
-            if not self.speedup: 
-                log.info(f'Iteration: {k + 1}')
+            # OLS solution
+            self.update_betas(k + 1, s, A, gamma, w_A, X, y)
 
-                # OLS solution
-                self.update_betas(k + 1, s, A, gamma, w_A, X, y)
+            # Get residuals at last iter equal to OLS
+            mu_hat = (X @ self.betas[-1])[:, None]
+            self.update_alphas(k + 1, X, (y - mu_hat))
 
-                # Get residuals at last iter equal to OLS
-                mu_hat = (X @ self.betas[-1])[:, None]
-                self.update_alphas(k + 1, X, (y - mu_hat))
+            # Compute mse
+            log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
 
-                # Compute mse
-                log.info(f'MSE: {F.mse_loss(y, mu_hat)}')
-
-            # End monitoring execution time
-            end_time = time.time()
-        else:
-            # End monitoring execution time
-            end_time = time.time()
-
-            self.betas = self.betas[:k]
-            self.alphas = self.alphas[:k]
+        # End monitoring execution time
+        end_time = time.time()
 
         wandb.log({'exec_time': end_time - start_time})
 

@@ -13,7 +13,7 @@ exp:
   p: 10
   split: 0.7
   
-  speedup: true
+  speedup: false
 
 wandb:
   project: lars

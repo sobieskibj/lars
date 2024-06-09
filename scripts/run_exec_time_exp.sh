@@ -25,12 +25,11 @@ export HYDRA_FULL_ERROR=1
 wandb online
 
 N=10_000
-PS=($(seq -s ' ' 100 100 10000))
+PS=($(seq -s ' ' 100 100 5000))
 
 for P in ${PS[@]}; do
     
     python src/main.py --config-name train_val_lars_synthetic_regression exp.n=$N exp.p=$P
-    
-    # python src/main.py --config-name train_val_lars_sk_synthetic_regression exp.n=$N exp.p=$P
+    python src/main.py --config-name train_val_lars_sk_synthetic_regression exp.n=$N exp.p=$P
 
 done
